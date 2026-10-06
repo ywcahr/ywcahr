@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>한국YWCA연합회 인사팀 소통창구</title>
+<style>
+:root{--bg:#f1f6fd;--card:#fff;--tx:#1c2a3d;--mu:#5d6f86;--ln:#d5e1f1;--pr:#004fa3;--st:#e6f0fc}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1621;--card:#18222f;--tx:#e7eef8;--mu:#98a9c0;--ln:#2b3a4e;--pr:#6aa8f0;--st:#1d2d44}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.65 system-ui,"Malgun Gothic",sans-serif}
+main{max-width:640px;margin:0 auto;padding:22px 16px 70px}h1{font-size:1.55rem;margin:0}h2{margin:0 0 6px}
+.top{display:flex;align-items:center;gap:14px}.top img{height:58px;width:auto}.org{font-size:.9rem;color:var(--pr);font-weight:700}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:22px;padding:22px;margin:16px 0;box-shadow:0 4px 14px rgba(0,79,163,.08)}
+.mu{color:var(--mu);font-size:.93rem}.intro{margin:14px 0}.intro b{display:block;font-size:1.05rem;margin-bottom:4px}
+.tabs{display:flex;gap:8px}.tabs button{flex:1}
+label{display:block;margin:14px 0 6px;font-weight:700}
+input,textarea{width:100%;padding:12px 14px;border:1px solid var(--ln);border-radius:14px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:170px;resize:vertical}input:focus,textarea:focus{outline:2px solid var(--pr);outline-offset:1px}
+button{padding:11px 20px;border:1px solid var(--ln);border-radius:999px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+button.p{background:var(--pr);border-color:var(--pr);color:#fff;font-weight:700}button.on{border-color:var(--pr);color:var(--pr);font-weight:700}
+.row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.hide{display:none}.err{color:#d6453d;margin-top:10px}
+ul.note{margin:14px 0;padding:14px 14px 14px 32px;background:var(--st);border-radius:14px;font-size:.92rem;color:var(--mu)}ul.note li{margin:3px 0}
+.big{font:700 1.5rem monospace;letter-spacing:.08em;word-break:break-all;background:var(--st);padding:14px;border-radius:14px;text-align:center;color:var(--pr)}
+.msg{margin:10px 0;padding:12px 14px;border-radius:16px;background:var(--bg);border:1px solid var(--ln);white-space:pre-wrap;word-break:break-word}
+.msg.staff{background:var(--st);border-color:var(--pr)}.who{font-weight:700;font-size:.85rem;margin-bottom:2px}
+.hp{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><img src="logo.png" alt="" onerror="this.remove()"><div><div class="org">한국YWCA연합회</div><h1>인사팀 소통창구 💬</h1></div></div>
+<div class="intro"><b>궁금한 점과 전하고 싶은 이야기를 남겨 주세요. 🌱</b>
+<span class="mu">인사 관련 질문부터 고충에 대한 의견, 제안, 상담을 남길 수 있는 공간입니다.<br>회원가입 없이 익명으로 작성하고, 접수번호와 비밀번호로 내 글과 답변을 볼 수 있습니다.</span></div>
+
+<div class="tabs"><button id="tN" class="on">✏️ 글 남기기</button><button id="tL">🔎 내 글·답변 확인하기</button></div>
+
+<section id="vNew" class="card">
+  <label for="ti">제목</label>
+  <input id="ti" maxlength="100">
+  <label for="body">내용</label>
+  <textarea id="body" maxlength="10000" placeholder="어떤 이야기를 전하고 싶으신가요?&#10;궁금한 점이나 나누고 싶은 의견을 자유롭게 적어 주세요.&#10;이름이나 연락처를 입력할 필요는 없습니다 🙂"></textarea>
+  <ul class="note">
+    <li>작성한 글은 인사팀 외 다른 사용자에게 공개되지 않습니다.</li>
+    <li>접수번호와 글 비밀번호를 따로 보관해 주세요. 분실하면 조회하거나 복구할 수 없습니다.</li>
+    <li>답변에는 사안에 따라 일정 시간이 소요될 수 있으며, 1주일 이상 지연될 경우 지연에 대한 답글을 먼저 달아드립니다.</li>
+    <li>답변 알림은 별도로 발송되지 않습니다. 이 사이트에 다시 방문해 확인해 주세요.</li>
+    <li>작성한 글을 조회한 뒤 내용을 수정하거나 삭제할 수 있습니다.</li>
+  </ul>
+  <label for="pw">🔑 글 비밀번호 <span class="mu">(영어+숫자 포함 8자 이상)</span></label>
+  <input id="pw" type="text" autocomplete="off" maxlength="128">
+  <div class="row"><button id="gen" type="button">🎲 무작위 비밀번호 만들기</button></div>
+  <div id="acBox" class="hide"><label for="ac">입장 코드</label><input id="ac" autocomplete="off"></div>
+  <input class="hp" id="web" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <div class="row"><button class="p" id="send">등록하기</button></div>
+  <div id="eN" class="err"></div>
+</section>
+
+<section id="vDone" class="card hide">
+  <h2>🎉 남겨주신 이야기를 잘 받았습니다.</h2>
+  <p>아래 접수번호를 보관해 주세요.<br>접수번호와 글 비밀번호로 작성한 내용과 인사팀의 답변을 확인할 수 있습니다.</p>
+  <div class="big" id="oCode"></div>
+  <p class="mu">글 비밀번호는 다시 보여드릴 수 없으며, 분실하면 복구할 수 없습니다.</p>
+  <div class="row"><button id="cp" type="button">📋 접수번호 복사</button><button class="p" id="chk">🔎 내 글·답변 확인</button></div>
+</section>
+
+<section id="vLogin" class="card hide">
+  <label for="lc">접수번호</label><input id="lc" autocomplete="off" placeholder="XXXX-XXXX-XXXX">
+  <label for="lp">글 비밀번호</label><input id="lp" type="password" autocomplete="off">
+  <div class="row"><button class="p" id="go">확인하기</button></div>
+  <div id="eL" class="err"></div>
+</section>
+
+<section id="vCase" class="card hide">
+  <h2 id="cTi"></h2>
+  <div class="mu">접수번호 <b id="cCode"></b> · 상태 <b id="cSt"></b></div>
+  <div id="list"></div>
+  <label for="rb">💌 추가로 남길 이야기</label>
+  <textarea id="rb" maxlength="10000"></textarea>
+  <div class="row"><button class="p" id="rep">보내기</button><button id="ref">🔄 새로고침</button><button id="out">나가기</button></div>
+  <div id="eC" class="err"></div>
+</section>
+</main>
+<script>
+// ▼▼▼ 아래 주소의 '프로젝트ID' 부분을 Supabase api 함수 주소에 맞게 바꾸세요 ▼▼▼
+const API = "https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
+// ▲▲▲
+const $ = s => document.querySelector(s);
+const ST = {received:"접수됨", reviewing:"확인 중", answered:"답변 도착", closed:"종결"};
+let token = null, rawCode = "";
+async function call(b){
+  const r = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+  const d = await r.json().catch(()=>({error:"응답을 읽을 수 없습니다."}));
+  if(!r.ok) throw Object.assign(new Error(d.error||"오류가 발생했습니다."),{status:r.status});
+  return d;
+}
+function show(id){
+  for(const v of ["vNew","vDone","vLogin","vCase"]) $("#"+v).classList.toggle("hide", v!==id);
+  $("#tN").classList.toggle("on", id==="vNew"||id==="vDone");
+  $("#tL").classList.toggle("on", id==="vLogin"||id==="vCase");
+}
+const fmt = c => c.replace(/(.{4})(?=.)/g,"$1-");
+$("#tN").onclick = () => show("vNew");
+$("#tL").onclick = () => show(token ? "vCase" : "vLogin");
+call({action:"config"}).then(c => { if(c.accessCodeRequired) $("#acBox").classList.remove("hide"); }).catch(()=>{});
+
+$("#gen").onclick = () => {
+  const A = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s;
+  do { s = ""; for(const b of crypto.getRandomValues(new Uint8Array(14))) s += A[b % A.length]; } while(!/\d/.test(s) || !/[A-Za-z]/.test(s));
+  $("#pw").value = s;
+};
+$("#send").onclick = async () => {
+  $("#eN").textContent = "";
+  const pw = $("#pw").value;
+  if(!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw)){ $("#eN").textContent = "글 비밀번호는 영어와 숫자를 포함해 8자 이상 입력해 주세요."; return; }
+  try{
+    const d = await call({action:"submit", title:$("#ti").value, body:$("#body").value, password:pw, accessCode:$("#ac").value, website:$("#web").value});
+    rawCode = d.receipt_code; $("#oCode").textContent = fmt(rawCode);
+    $("#ti").value = ""; $("#body").value = ""; $("#pw").value = "";
+    show("vDone");
+  }catch(e){ $("#eN").textContent = e.message; }
+};
+$("#cp").onclick = async () => {
+  try{ await navigator.clipboard.writeText(fmt(rawCode)); $("#cp").textContent = "✅ 복사되었습니다"; }
+  catch{ $("#cp").textContent = "직접 선택해 복사해 주세요"; }
+};
+$("#chk").onclick = () => { $("#lc").value = fmt(rawCode); $("#oCode").textContent = ""; rawCode = ""; $("#cp").textContent = "📋 접수번호 복사"; show("vLogin"); $("#lp").focus(); };
+
+function render(d){
+  $("#cTi").textContent = d.case.title || "(제목 없음)";
+  $("#cCode").textContent = fmt(d.case.receipt_code); $("#cSt").textContent = ST[d.case.status] || d.case.status;
+  const box = $("#list"); box.textContent = "";
+  for(const m of d.messages){
+    const el = document.createElement("div"); el.className = "msg"+(m.sender==="staff"?" staff":"");
+    const w = document.createElement("div"); w.className = "who";
+    w.textContent = (m.sender==="staff" ? "💙 인사팀" : "🙂 나")+" · "+new Date(m.created_at).toLocaleString("ko-KR");
+    const t = document.createElement("div"); t.textContent = m.body;
+    el.append(w,t); box.append(el);
+  }
+  show("vCase");
+}
+$("#go").onclick = async () => {
+  $("#eL").textContent = "";
+  try{
+    const d = await call({action:"login", code:$("#lc").value, password:$("#lp").value});
+    token = d.token; $("#lp").value = ""; render(d);
+  }catch(e){ $("#eL").textContent = e.message; }
+};
+async function again(b){
+  $("#eC").textContent = "";
+  try{ render(await call({...b, token})); return true; }
+  catch(e){ $("#eC").textContent = e.message; if(e.status===401){ token = null; show("vLogin"); $("#eL").textContent = e.message; } return false; }
+}
+$("#rep").onclick = async () => { if(await again({action:"reply", body:$("#rb").value})) $("#rb").value = ""; };
+$("#ref").onclick = () => again({action:"view"});
+$("#out").onclick = () => { token = null; $("#lc").value = ""; $("#list").textContent = ""; show("vLogin"); };
+show("vNew");
+</script>
+</body>
+</html>
