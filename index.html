@@ -86,6 +86,9 @@ ul.fnote{margin:6px 0 0;padding-left:20px;font-size:.82rem;color:var(--mu)}ul.fn
   <div class="mu">글번호 <b id="cCode"></b> · 상태 <b id="cSt"></b></div>
   <div id="list"></div>
   <div id="atts"></div>
+  <div class="row"><button id="eb" type="button">✏️ 내 글 수정</button><button id="db" type="button">🗑 글 삭제</button></div>
+  <p id="tmsg" class="mu"></p>
+  <div id="editBox" class="hide"><textarea id="ebody" maxlength="10000"></textarea><div class="row"><button class="p" id="esave">저장</button><button id="ecancel">취소</button></div></div>
   <label for="rb">💌 추가로 남길 이야기</label>
   <textarea id="rb" maxlength="10000"></textarea>
   <label for="rf">📎 첨부파일 <span class="mu">(선택)</span></label>
@@ -98,13 +101,13 @@ ul.fnote{margin:6px 0 0;padding-left:20px;font-size:.82rem;color:var(--mu)}ul.fn
 </main>
 <script>
 // ▼▼▼ 아래 주소의 '프로젝트ID' 부분을 Supabase api 함수 주소에 맞게 바꾸세요 ▼▼▼
-const API = "https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
+const API = "https://vxbzkintrrfncntpvufh.supabase.co/functions/v1/api";
 const RULES_URL = "https://drive.google.com/file/d/1Mil15dQXdAQ-qr8KpoTGchsvDU8LMAJB/view?usp=drive_link"; // 취업규칙 주소(https://...)를 따옴표 안에 넣으면 버튼이 나타납니다
 // ▲▲▲
 const $ = s => document.querySelector(s);
 const CAT = {work:"🕘 근무·휴가",pay:"💰 급여·보상",growth:"🌱 복지·성장지원",grievance:"🤝 직장 내 고충·갈등",suggestion:"💡 제안·의견",etc:"💬 기타"};
 const ST = {received:"접수됨", reviewing:"확인 중", answered:"답변 완료", closed:"종결"};
-let token = null, rawCode = "";
+let token = null, rawCode = "", first = "";
 if(RULES_URL){ const a = $("#rules"); a.href = RULES_URL; a.classList.remove("hide"); }
 async function call(b){
   const r = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
@@ -127,7 +130,8 @@ $("#gen").onclick = () => {
   do { s = ""; for(const b of crypto.getRandomValues(new Uint8Array(4))) s += b % 10; } while(weak(s));
   $("#pw").value = s;
 };
-$("#send").onclick = async () => {
+async function busy(b, label, fn){ const t = b.textContent; b.disabled = true; b.textContent = label; try{ await fn(); } finally{ b.disabled = false; b.textContent = t; } }
+$("#send").onclick = () => busy($("#send"), "등록 중입니다... ⏳", async () => {
   $("#eN").textContent = "";
   const pw = $("#pw").value;
   if(!/^\d{4}$/.test(pw)){ $("#eN").textContent = "글 비밀번호는 숫자 4자리로 입력해 주세요."; return; }
@@ -135,11 +139,11 @@ $("#send").onclick = async () => {
   try{
     const d = await call({action:"submit", category:$("#cat").value, body:$("#body").value, password:pw, accessCode:$("#ac").value, website:$("#web").value});
     rawCode = d.receipt_code; $("#oCode").textContent = fmt(rawCode);
-    $("#oWarn").textContent = await sendFiles(d.token, $("#fl").files); $("#fl").value = "";
+    $("#send").textContent = "첨부파일 올리는 중... ⏳"; $("#oWarn").textContent = await sendFiles(d.token, $("#fl").files); $("#fl").value = "";
     $("#cat").value = ""; $("#body").value = ""; $("#pw").value = "";
     show("vDone");
   }catch(e){ $("#eN").textContent = e.message; }
-};
+});
 $("#cp").onclick = async () => {
   try{ await navigator.clipboard.writeText(fmt(rawCode)); $("#cp").textContent = "✅ 복사되었습니다"; }
   catch{ $("#cp").textContent = "직접 선택해 복사해 주세요"; }
@@ -187,22 +191,38 @@ function render(d){
   for(const a of d.attachments||[]){
     const b = document.createElement("button"); b.type = "button"; b.style.margin = "4px 6px 4px 0";
     b.textContent = "📎 "+a.original_name+" ("+Math.max(1,Math.round(a.size_bytes/1024))+"KB)"; b.onclick = () => dl(a.id); at.append(b);
+    if(d.case.editable){ const x = document.createElement("button"); x.type = "button"; x.className = "sm"; x.textContent = "✕"; x.title = "이 파일 삭제"; x.style.marginRight = "10px";
+      x.onclick = () => { if(confirm("이 첨부파일을 삭제할까요?")) again({action:"delattach", id:a.id}); }; at.append(x); }
   }
+  const ed = d.case.editable;
+  $("#eb").classList.toggle("hide", !ed); $("#editBox").classList.add("hide");
+  $("#db").textContent = ed ? "🗑 글 삭제" : "🗑 삭제 요청";
+  $("#tmsg").textContent = ed ? "" : "답변이 달린 글은 원문을 수정할 수 없습니다. 정정할 내용은 아래 '추가로 남길 이야기'로 남겨 주세요. 삭제를 요청하면 이 글은 더 이상 조회되지 않습니다.";
+  first = (d.messages.find(m => m.sender==="writer")||{}).body || "";
   show("vCase");
 }
-$("#go").onclick = async () => {
+$("#go").onclick = () => busy($("#go"), "확인 중입니다... ⏳", async () => {
   $("#eL").textContent = "";
   try{
     const d = await call({action:"login", code:$("#lc").value, password:$("#lp").value});
     token = d.token; $("#lp").value = ""; render(d);
   }catch(e){ $("#eL").textContent = e.message; }
-};
+});
 async function again(b){
   $("#eC").textContent = "";
   try{ render(await call({...b, token})); return true; }
   catch(e){ $("#eC").textContent = e.message; if(e.status===401){ token = null; show("vLogin"); $("#eL").textContent = e.message; } return false; }
 }
-$("#rep").onclick = async () => { if(await again({action:"reply", body:$("#rb").value})){ $("#rb").value = ""; const w = await sendFiles(token, $("#rf").files); $("#rf").value = ""; await again({action:"view"}); if(w) $("#eC").textContent = w; } };
+$("#eb").onclick = () => { $("#ebody").value = first; $("#editBox").classList.remove("hide"); };
+$("#ecancel").onclick = () => $("#editBox").classList.add("hide");
+$("#esave").onclick = () => again({action:"edit", body:$("#ebody").value});
+$("#db").onclick = async () => {
+  const ed = $("#db").textContent.includes("글 삭제");
+  if(!confirm(ed ? "이 글과 첨부파일을 완전히 삭제합니다. 되돌릴 수 없습니다. 삭제할까요?" : "삭제를 요청하면 이 글은 더 이상 조회되지 않습니다. 계속할까요?")) return;
+  try{ await call({action:"delete", token}); token = null; $("#lc").value = ""; $("#list").textContent = ""; alert(ed ? "삭제되었습니다." : "삭제 요청이 접수되었습니다."); show("vLogin"); }
+  catch(e){ $("#eC").textContent = e.message; }
+};
+$("#rep").onclick = () => busy($("#rep"), "보내는 중... ⏳", async () => { if(await again({action:"reply", body:$("#rb").value})){ $("#rb").value = ""; const w = await sendFiles(token, $("#rf").files); $("#rf").value = ""; await again({action:"view"}); if(w) $("#eC").textContent = w; } });
 $("#ref").onclick = () => again({action:"view"});
 $("#out").onclick = () => { token = null; $("#lc").value = ""; $("#list").textContent = ""; show("vLogin"); };
 show("vNew");
