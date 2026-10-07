@@ -60,7 +60,7 @@ ul.fnote{margin:6px 0 0;padding-left:20px;font-size:.82rem;color:var(--mu)}ul.fn
   <label for="pw">🔑 글 비밀번호 <span class="mu">(숫자 4자리 · 0000, 1234처럼 쉬운 번호는 사용할 수 없어요)</span></label>
   <div class="pwrow"><input id="pw" type="text" inputmode="numeric" autocomplete="off" maxlength="4"><button id="gen" type="button" class="sm">🎲 무작위 비밀번호 만들기</button></div>
   <div id="acBox" class="hide"><label for="ac">입장 코드</label><input id="ac" autocomplete="off"></div>
-  <input class="hp" id="web" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <input class="hp" id="hp_zq7" tabindex="-1" autocomplete="off" aria-hidden="true">
   <div class="row"><button class="p" id="send">등록하기</button></div>
   <div id="eN" class="err"></div>
 </section>
@@ -137,7 +137,7 @@ $("#send").onclick = () => busy($("#send"), "등록 중입니다... ⏳", async 
   if(!/^\d{4}$/.test(pw)){ $("#eN").textContent = "글 비밀번호는 숫자 4자리로 입력해 주세요."; return; }
   if(!$("#cat").value){ $("#eN").textContent = "분류를 선택해 주세요."; return; }
   try{
-    const d = await call({action:"submit", category:$("#cat").value, body:$("#body").value, password:pw, accessCode:$("#ac").value, website:$("#web").value});
+    const d = await call({action:"submit", category:$("#cat").value, body:$("#body").value, password:pw, accessCode:$("#ac").value, website:$("#hp_zq7").value});
     rawCode = d.receipt_code; $("#oCode").textContent = fmt(rawCode);
     $("#send").textContent = "첨부파일 올리는 중... ⏳"; $("#oWarn").textContent = await sendFiles(d.token, $("#fl").files); $("#fl").value = "";
     $("#cat").value = ""; $("#body").value = ""; $("#pw").value = "";
