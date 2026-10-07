@@ -55,7 +55,7 @@ button.p{background:var(--pr);border-color:var(--pr);color:var(--on);font-weight
 </main>
 <script>
 // ▼▼▼ Supabase 주소와 공개 키(Publishable key)를 넣으세요 ▼▼▼
-const SB = https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
+const SB = "https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
 const KEY = "sb_publishable_bMx8RxJud78mu-aPMmYFUQ_MtS1MBDz";
 // ▲▲▲
 const API = SB + "/functions/v1/api";
@@ -72,14 +72,15 @@ async function call(b){
   return d;
 }
 $("#go").onclick = async () => {
-  $("#eL").textContent = "";
+  $("#eL").textContent = "로그인 중입니다... ⏳";
   try{
     const r = await fetch(SB+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},body:JSON.stringify({email:$("#em").value,password:$("#pw").value})});
     const d = await r.json();
     if(!r.ok) throw new Error("이메일 또는 비밀번호를 확인해 주세요.");
-    jwt = d.access_token; $("#pw").value = ""; await load();
+    jwt = d.access_token; $("#pw").value = ""; await load(); $("#eL").textContent = "";
   }catch(e){ $("#eL").textContent = e.message; }
 };
+for(const i of ["#em","#pw"]) $(i).onkeydown = e => { if(e.key==="Enter") $("#go").click(); };
 async function load(){
   const d = await call({action:"admin_list"});
   const box = $("#list"); box.textContent = "";
