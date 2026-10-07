@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>인사팀 소통창구 · 관리자</title>
+<style>
+:root{--bg:#f1f6fd;--card:#fff;--tx:#1c2a3d;--mu:#5d6f86;--ln:#d5e1f1;--pr:#004fa3;--st:#e6f0fc;--on:#fff;--wa:#fff4d6}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1621;--card:#18222f;--tx:#e7eef8;--mu:#98a9c0;--ln:#2b3a4e;--pr:#6aa8f0;--st:#1d2d44;--on:#0b1320;--wa:#3a3015}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 system-ui,"Malgun Gothic",sans-serif}
+main{max-width:960px;margin:0 auto;padding:24px 20px 80px}h1{font-size:1.4rem;margin:0 0 4px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:18px;padding:20px;margin:14px 0}
+.mu{color:var(--mu);font-size:.9rem}label{display:block;margin:12px 0 6px;font-weight:700}
+input,textarea,select{width:100%;padding:11px 13px;border:1px solid var(--ln);border-radius:12px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:140px;resize:vertical}
+button{padding:10px 18px;border:1px solid var(--ln);border-radius:999px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+button.p{background:var(--pr);border-color:var(--pr);color:var(--on);font-weight:700}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}.hide{display:none}.err{color:#d6453d;margin-top:10px}
+.item{display:block;width:100%;text-align:left;border-radius:14px;margin:8px 0;padding:12px 14px}.item.wait{background:var(--wa)}
+.badge{display:inline-block;padding:1px 10px;border-radius:999px;background:var(--st);color:var(--pr);font-size:.82rem;font-weight:700;margin-right:6px}
+.msg{margin:10px 0;padding:12px 14px;border-radius:16px;background:var(--bg);border:1px solid var(--ln);white-space:pre-wrap;word-break:break-word}
+.msg.staff{background:var(--st);border-color:var(--pr)}.who{font-weight:700;font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<h1>🛠 인사팀 소통창구 · 관리자</h1>
+<p class="mu">담당자 전용 화면입니다. 직원에게는 모든 답변이 '인사팀'으로만 표시됩니다.</p>
+
+<section id="vLogin" class="card">
+  <label for="em">이메일</label><input id="em" type="email" autocomplete="username">
+  <label for="pw">비밀번호</label><input id="pw" type="password" autocomplete="current-password">
+  <div class="row"><button class="p" id="go">로그인</button></div>
+  <div id="eL" class="err"></div>
+</section>
+
+<section id="vList" class="hide">
+  <div class="row"><button id="rf">🔄 새로고침</button><button id="lo">로그아웃</button><span class="mu" id="cnt"></span></div>
+  <div id="list"></div>
+</section>
+
+<section id="vCase" class="card hide">
+  <div class="row"><button id="bk">← 목록</button><b id="cTi"></b></div>
+  <div class="mu" id="cMeta"></div>
+  <div id="msgs"></div><div id="atts"></div>
+  <label for="rb">💙 인사팀 답변 (직원에게는 '인사팀'으로 표시됩니다)</label>
+  <textarea id="rb" maxlength="10000"></textarea>
+  <div class="row"><button class="p" id="rep">답변 보내기</button>
+    <select id="st" style="width:auto"><option value="received">접수됨</option><option value="reviewing">확인 중</option><option value="answered">답변 도착</option><option value="closed">종결</option></select>
+    <button id="stb">상태 변경</button></div>
+  <div id="eC" class="err"></div>
+</section>
+</main>
+<script>
+// ▼▼▼ Supabase 주소와 공개 키(Publishable key)를 넣으세요 ▼▼▼
+const SB = https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
+const KEY = "sb_publishable_bMx8RxJud78mu-aPMmYFUQ_MtS1MBDz";
+// ▲▲▲
+const API = SB + "/functions/v1/api";
+const $ = s => document.querySelector(s);
+const CAT = {work:"🕘 근무·휴가",pay:"💰 급여·보상",growth:"🌱 복지·성장지원",grievance:"🤝 직장 내 고충·갈등",suggestion:"💡 제안·의견",etc:"💬 기타"};
+const ST = {received:"접수됨",reviewing:"확인 중",answered:"답변 도착",closed:"종결"};
+let jwt = null, cur = null;
+const fmt = c => (c||"").replace(/(.{4})(?=.)/g,"$1-");
+function show(id){ for(const v of ["vLogin","vList","vCase"]) $("#"+v).classList.toggle("hide", v!==id); }
+async function call(b){
+  const r = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+jwt},body:JSON.stringify(b)});
+  const d = await r.json().catch(()=>({error:"응답 오류"}));
+  if(!r.ok){ if(r.status===401){ jwt = null; show("vLogin"); $("#eL").textContent = d.error; } throw new Error(d.error||"오류"); }
+  return d;
+}
+$("#go").onclick = async () => {
+  $("#eL").textContent = "";
+  try{
+    const r = await fetch(SB+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},body:JSON.stringify({email:$("#em").value,password:$("#pw").value})});
+    const d = await r.json();
+    if(!r.ok) throw new Error("이메일 또는 비밀번호를 확인해 주세요.");
+    jwt = d.access_token; $("#pw").value = ""; await load();
+  }catch(e){ $("#eL").textContent = e.message; }
+};
+async function load(){
+  const d = await call({action:"admin_list"});
+  const box = $("#list"); box.textContent = "";
+  const wait = d.cases.filter(c => c.last==="writer" && c.status!=="closed").length;
+  $("#cnt").textContent = "전체 "+d.cases.length+"건 · 답변 대기 "+wait+"건";
+  for(const c of d.cases){
+    const b = document.createElement("button"); b.className = "item"+(c.last==="writer" && c.status!=="closed" ? " wait":"");
+    const t = document.createElement("div");
+    t.innerHTML = '<span class="badge"></span><span class="badge"></span> <b></b>';
+    const [b1,b2] = t.querySelectorAll(".badge"); b1.textContent = ST[c.status]||c.status; b2.textContent = CAT[c.category]||"분류 없음";
+    t.querySelector("b").textContent = fmt(c.receipt_code);
+    const p = document.createElement("div"); p.className = "mu"; p.textContent = (c.at||c.created_date)+" · "+(c.preview||"");
+    b.append(t,p); b.onclick = () => open(c.id); box.append(b);
+  }
+  show("vList");
+}
+async function open(id){
+  $("#eC").textContent = "";
+  const d = await call({action:"admin_view", id}); cur = id;
+  $("#cTi").textContent = (CAT[d.case.category]||"분류 없음")+" · "+fmt(d.case.receipt_code);
+  $("#cMeta").textContent = "접수일 "+d.case.created_date+" · 상태 "+(ST[d.case.status]||d.case.status);
+  $("#st").value = d.case.status;
+  const m = $("#msgs"); m.textContent = "";
+  for(const x of d.messages){
+    const el = document.createElement("div"); el.className = "msg"+(x.sender==="staff"?" staff":"");
+    const w = document.createElement("div"); w.className = "who"; w.textContent = (x.sender==="staff"?"💙 인사팀":"🙂 작성자")+" · "+x.created_at;
+    const t = document.createElement("div"); t.textContent = x.body; el.append(w,t); m.append(el);
+  }
+  const a = $("#atts"); a.textContent = "";
+  for(const f of d.attachments){
+    const b = document.createElement("button"); b.style.margin = "4px 6px 4px 0";
+    b.textContent = "📎 "+f.original_name+" ("+Math.max(1,Math.round(f.size_bytes/1024))+"KB)";
+    b.onclick = async () => { try{ location.href = (await call({action:"admin_download", id:f.id})).url; }catch(e){ $("#eC").textContent = e.message; } };
+    a.append(b);
+  }
+  show("vCase");
+}
+$("#rep").onclick = async () => {
+  $("#eC").textContent = "";
+  try{ await call({action:"admin_reply", id:cur, body:$("#rb").value}); $("#rb").value = ""; await open(cur); }
+  catch(e){ $("#eC").textContent = e.message; }
+};
+$("#stb").onclick = async () => {
+  try{ await call({action:"admin_status", id:cur, status:$("#st").value}); await open(cur); }
+  catch(e){ $("#eC").textContent = e.message; }
+};
+$("#bk").onclick = () => load().catch(()=>{});
+$("#rf").onclick = () => load().catch(()=>{});
+$("#lo").onclick = () => { jwt = null; cur = null; show("vLogin"); };
+</script>
+</body>
+</html>
