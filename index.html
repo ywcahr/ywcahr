@@ -25,7 +25,7 @@ ul.note{margin:14px 0;padding:14px 14px 14px 32px;background:var(--st);border-ra
 .big{font:700 1.5rem monospace;letter-spacing:.08em;word-break:break-all;background:var(--st);padding:14px;border-radius:14px;text-align:center;color:var(--pr)}
 .msg{margin:10px 0;padding:12px 14px;border-radius:16px;background:var(--bg);border:1px solid var(--ln);white-space:pre-wrap;word-break:break-word}
 .msg.staff{background:var(--st);border-color:var(--pr)}.who{font-weight:700;font-size:.85rem;margin-bottom:2px}
-.hp{position:absolute;left:-9999px}
+.hp{position:absolute;left:-9999px}select{width:100%;padding:12px 14px;border:1px solid var(--ln);border-radius:14px;background:var(--bg);color:var(--tx);font:inherit}
 </style>
 </head>
 <body>
@@ -37,8 +37,8 @@ ul.note{margin:14px 0;padding:14px 14px 14px 32px;background:var(--st);border-ra
 <div class="tabs"><button id="tN" class="on">✏️ 글 남기기</button><button id="tL">🔎 내 글·답변 확인하기</button></div>
 
 <section id="vNew" class="card">
-  <label for="ti">제목</label>
-  <input id="ti" maxlength="100">
+  <label for="cat">분류</label>
+  <select id="cat"><option value="">어떤 내용인가요? 선택해 주세요</option><option value="work">🕘 근무·휴가</option><option value="pay">💰 급여·보상</option><option value="growth">🌱 복지·성장지원</option><option value="grievance">🤝 직장 내 고충·갈등</option><option value="suggestion">💡 제안·의견</option><option value="etc">💬 기타</option></select>
   <label for="body">내용</label>
   <textarea id="body" maxlength="10000" placeholder="어떤 이야기를 전하고 싶으신가요?&#10;궁금한 점이나 나누고 싶은 의견을 자유롭게 적어 주세요.&#10;이름이나 연락처를 입력할 필요는 없습니다 🙂"></textarea>
   <ul class="note">
@@ -48,6 +48,9 @@ ul.note{margin:14px 0;padding:14px 14px 14px 32px;background:var(--st);border-ra
     <li>답변 알림은 별도로 발송되지 않습니다. 이 사이트에 다시 방문해 확인해 주세요.</li>
     <li>작성한 글을 조회한 뒤 내용을 수정하거나 삭제할 수 있습니다.</li>
   </ul>
+  <label for="fl">📎 첨부파일 <span class="mu">(선택)</span></label>
+  <input id="fl" type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt">
+  <p class="mu">사진·문서 파일을 파일당 5MB 이하, 최대 5개까지 올릴 수 있습니다. 사진은 촬영 위치 등 정보가 자동으로 제거됩니다. 문서 속 작성자 정보와 파일 이름에는 본인을 알 수 있는 내용이 없는지 확인해 주세요.</p>
   <label for="pw">🔑 글 비밀번호 <span class="mu">(영어+숫자 포함 8자 이상)</span></label>
   <input id="pw" type="text" autocomplete="off" maxlength="128">
   <div class="row"><button id="gen" type="button">🎲 무작위 비밀번호 만들기</button></div>
@@ -61,6 +64,7 @@ ul.note{margin:14px 0;padding:14px 14px 14px 32px;background:var(--st);border-ra
   <h2>🎉 남겨주신 이야기를 잘 받았습니다.</h2>
   <p>아래 접수번호를 보관해 주세요.<br>접수번호와 글 비밀번호로 작성한 내용과 인사팀의 답변을 확인할 수 있습니다.</p>
   <div class="big" id="oCode"></div>
+  <p id="oWarn" class="err"></p>
   <p class="mu">글 비밀번호는 다시 보여드릴 수 없으며, 분실하면 복구할 수 없습니다.</p>
   <div class="row"><button id="cp" type="button">📋 접수번호 복사</button><button class="p" id="chk">🔎 내 글·답변 확인</button></div>
 </section>
@@ -76,17 +80,23 @@ ul.note{margin:14px 0;padding:14px 14px 14px 32px;background:var(--st);border-ra
   <h2 id="cTi"></h2>
   <div class="mu">접수번호 <b id="cCode"></b> · 상태 <b id="cSt"></b></div>
   <div id="list"></div>
+  <div id="atts"></div>
   <label for="rb">💌 추가로 남길 이야기</label>
   <textarea id="rb" maxlength="10000"></textarea>
+  <label for="rf">📎 첨부파일 <span class="mu">(선택)</span></label>
+  <input id="rf" type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt">
+  <p class="mu">사진·문서 파일을 파일당 5MB 이하, 최대 5개까지 올릴 수 있습니다. 사진은 촬영 위치 등 정보가 자동으로 제거됩니다. 문서 속 작성자 정보와 파일 이름에는 본인을 알 수 있는 내용이 없는지 확인해 주세요.</p>
+
   <div class="row"><button class="p" id="rep">보내기</button><button id="ref">🔄 새로고침</button><button id="out">나가기</button></div>
   <div id="eC" class="err"></div>
 </section>
 </main>
 <script>
 // ▼▼▼ 아래 주소의 '프로젝트ID' 부분을 Supabase api 함수 주소에 맞게 바꾸세요 ▼▼▼
-const API = "https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
+const API = "https://https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api.supabase.co/functions/v1/api";
 // ▲▲▲
 const $ = s => document.querySelector(s);
+const CAT = {work:"🕘 근무·휴가",pay:"💰 급여·보상",growth:"🌱 복지·성장지원",grievance:"🤝 직장 내 고충·갈등",suggestion:"💡 제안·의견",etc:"💬 기타"};
 const ST = {received:"접수됨", reviewing:"확인 중", answered:"답변 도착", closed:"종결"};
 let token = null, rawCode = "";
 async function call(b){
@@ -114,10 +124,12 @@ $("#send").onclick = async () => {
   $("#eN").textContent = "";
   const pw = $("#pw").value;
   if(!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw)){ $("#eN").textContent = "글 비밀번호는 영어와 숫자를 포함해 8자 이상 입력해 주세요."; return; }
+  if(!$("#cat").value){ $("#eN").textContent = "분류를 선택해 주세요."; return; }
   try{
-    const d = await call({action:"submit", title:$("#ti").value, body:$("#body").value, password:pw, accessCode:$("#ac").value, website:$("#web").value});
+    const d = await call({action:"submit", category:$("#cat").value, body:$("#body").value, password:pw, accessCode:$("#ac").value, website:$("#web").value});
     rawCode = d.receipt_code; $("#oCode").textContent = fmt(rawCode);
-    $("#ti").value = ""; $("#body").value = ""; $("#pw").value = "";
+    $("#oWarn").textContent = await sendFiles(d.token, $("#fl").files); $("#fl").value = "";
+    $("#cat").value = ""; $("#body").value = ""; $("#pw").value = "";
     show("vDone");
   }catch(e){ $("#eN").textContent = e.message; }
 };
@@ -127,8 +139,34 @@ $("#cp").onclick = async () => {
 };
 $("#chk").onclick = () => { $("#lc").value = fmt(rawCode); $("#oCode").textContent = ""; rawCode = ""; $("#cp").textContent = "📋 접수번호 복사"; show("vLogin"); $("#lp").focus(); };
 
+const ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt";
+async function prep(f){
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)) return f;
+  try{ // 사진은 다시 그려서 저장 -> 촬영 위치·기기 정보(EXIF) 제거
+    const bm = await createImageBitmap(f), k = Math.min(1, 2400/Math.max(bm.width,bm.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bm.width*k); c.height = Math.round(bm.height*k);
+    c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
+    const b = await new Promise(r => c.toBlob(r, f.type, .92));
+    return new File([b], f.name, {type:f.type});
+  }catch{ throw new Error("사진을 처리하지 못했습니다."); }
+}
+async function sendFiles(tk, files){
+  const bad = [];
+  for(const f of [...files].slice(0,5)){
+    try{
+      const fd = new FormData(); fd.append("token", tk); fd.append("file", await prep(f));
+      const r = await fetch(API,{method:"POST",body:fd});
+      if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error || "업로드 실패");
+    }catch(e){ bad.push(f.name+": "+e.message); }
+  }
+  return bad.length ? "⚠️ 일부 파일을 올리지 못했습니다. "+bad.join(" / ") : "";
+}
+async function dl(id){
+  try{ location.href = (await call({action:"download", token, id})).url; }
+  catch(e){ $("#eC").textContent = e.message; }
+}
 function render(d){
-  $("#cTi").textContent = d.case.title || "(제목 없음)";
+  $("#cTi").textContent = CAT[d.case.category] || "💬 문의·의견";
   $("#cCode").textContent = fmt(d.case.receipt_code); $("#cSt").textContent = ST[d.case.status] || d.case.status;
   const box = $("#list"); box.textContent = "";
   for(const m of d.messages){
@@ -137,6 +175,11 @@ function render(d){
     w.textContent = (m.sender==="staff" ? "💙 인사팀" : "🙂 나")+" · "+new Date(m.created_at).toLocaleString("ko-KR");
     const t = document.createElement("div"); t.textContent = m.body;
     el.append(w,t); box.append(el);
+  }
+  const at = $("#atts"); at.textContent = "";
+  for(const a of d.attachments||[]){
+    const b = document.createElement("button"); b.type = "button"; b.style.margin = "4px 6px 4px 0";
+    b.textContent = "📎 "+a.original_name+" ("+Math.max(1,Math.round(a.size_bytes/1024))+"KB)"; b.onclick = () => dl(a.id); at.append(b);
   }
   show("vCase");
 }
@@ -152,7 +195,7 @@ async function again(b){
   try{ render(await call({...b, token})); return true; }
   catch(e){ $("#eC").textContent = e.message; if(e.status===401){ token = null; show("vLogin"); $("#eL").textContent = e.message; } return false; }
 }
-$("#rep").onclick = async () => { if(await again({action:"reply", body:$("#rb").value})) $("#rb").value = ""; };
+$("#rep").onclick = async () => { if(await again({action:"reply", body:$("#rb").value})){ $("#rb").value = ""; const w = await sendFiles(token, $("#rf").files); $("#rf").value = ""; await again({action:"view"}); if(w) $("#eC").textContent = w; } };
 $("#ref").onclick = () => again({action:"view"});
 $("#out").onclick = () => { token = null; $("#lc").value = ""; $("#list").textContent = ""; show("vLogin"); };
 show("vNew");
