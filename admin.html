@@ -54,11 +54,9 @@ button.p{background:var(--pr);border-color:var(--pr);color:var(--on);font-weight
 </section>
 </main>
 <script>
-// ▼▼▼ Supabase 주소와 공개 키(Publishable key)를 넣으세요 ▼▼▼
-const SB = "https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
-const KEY = "sb_publishable_bMx8RxJud78mu-aPMmYFUQ_MtS1MBDz";
+// ▼▼▼ 직원 화면(index.html)의 const API 줄과 같은 주소를 넣으세요 ▼▼▼
+const API = "https://zgpgqruyqhhupvxqrdjc.supabase.co/functions/v1/api";
 // ▲▲▲
-const API = SB + "/functions/v1/api";
 const $ = s => document.querySelector(s);
 const CAT = {work:"🕘 근무·휴가",pay:"💰 급여·보상",growth:"🌱 복지·성장지원",grievance:"🤝 직장 내 고충·갈등",suggestion:"💡 제안·의견",etc:"💬 기타"};
 const ST = {received:"접수됨",reviewing:"확인 중",answered:"답변 도착",closed:"종결"};
@@ -74,10 +72,10 @@ async function call(b){
 $("#go").onclick = async () => {
   $("#eL").textContent = "로그인 중입니다... ⏳";
   try{
-    const r = await fetch(SB+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json",apikey:KEY},body:JSON.stringify({email:$("#em").value,password:$("#pw").value})});
-    const d = await r.json();
-    if(!r.ok) throw new Error("이메일 또는 비밀번호를 확인해 주세요.");
-    jwt = d.access_token; $("#pw").value = ""; await load(); $("#eL").textContent = "";
+    const r = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"admin_login",email:$("#em").value,password:$("#pw").value})});
+    const d = await r.json().catch(()=>({error:"응답을 읽을 수 없습니다."}));
+    if(!r.ok) throw new Error(d.error||"로그인에 실패했습니다.");
+    jwt = d.token; $("#pw").value = ""; await load(); $("#eL").textContent = "";
   }catch(e){ $("#eL").textContent = e.message; }
 };
 for(const i of ["#em","#pw"]) $(i).onkeydown = e => { if(e.key==="Enter") $("#go").click(); };
