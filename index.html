@@ -103,7 +103,7 @@ const RULES_URL = "https://drive.google.com/file/d/1Mil15dQXdAQ-qr8KpoTGchsvDU8L
 // ▲▲▲
 const $ = s => document.querySelector(s);
 const CAT = {work:"🕘 근무·휴가",pay:"💰 급여·보상",growth:"🌱 복지·성장지원",grievance:"🤝 직장 내 고충·갈등",suggestion:"💡 제안·의견",etc:"💬 기타"};
-const ST = {received:"접수됨", reviewing:"확인 중", answered:"답변 도착", closed:"종결"};
+const ST = {received:"접수됨", reviewing:"확인 중", answered:"답변 완료", closed:"종결"};
 let token = null, rawCode = "";
 if(RULES_URL){ const a = $("#rules"); a.href = RULES_URL; a.classList.remove("hide"); }
 async function call(b){
