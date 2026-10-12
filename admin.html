@@ -16,8 +16,9 @@ main{max-width:960px;margin:0 auto;padding:24px 20px 80px}h1{font-size:1.4rem;ma
 input,textarea,select{width:100%;padding:11px 13px;border:1px solid var(--ln);border-radius:12px;background:var(--bg);color:var(--tx);font:inherit}
 textarea{min-height:140px;resize:vertical}
 button{padding:10px 18px;border:1px solid var(--ln);border-radius:999px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
 button.p{background:var(--pr);border-color:var(--pr);color:var(--on);font-weight:700}
-.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}.hide{display:none}.err{color:#d6453d;margin-top:10px}.ok{color:#1f8a4c;margin-top:10px;font-weight:700}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}.hide{display:none}.err{color:#d6453d;margin-top:10px}.ok{color:#1f8a4c;margin-top:10px;font-weight:700;white-space:pre-wrap}
 .item{display:block;width:100%;text-align:left;border-radius:14px;margin:8px 0;padding:12px 14px}.item.wait{background:var(--wa)}
 .badge{display:inline-block;padding:1px 10px;border-radius:999px;background:var(--st);color:var(--pr);font-size:.82rem;font-weight:700;margin-right:6px}
 .msg{margin:10px 0;padding:12px 14px;border-radius:16px;background:var(--bg);border:1px solid var(--ln);white-space:pre-wrap;word-break:break-word}
@@ -38,7 +39,9 @@ button.p{background:var(--pr);border-color:var(--pr);color:var(--on);font-weight
 
 <section id="vList" class="hide">
   <div class="row"><button id="rf">🔄 새로고침</button><button id="lo">로그아웃</button><span class="mu" id="cnt"></span></div>
-  <div class="row"><button id="bkp">💾 백업 내려받기</button><button id="pg">🧹 오래된 종결 건 정리</button></div><div id="eT" class="ok"></div>
+  <div class="row"><button id="bkx">💾 엑셀용 백업</button><button id="bkj">🗄 원본 데이터(복원용)</button><button id="pg">🧹 오래된 종결 건 정리</button></div>
+  <div class="mu" style="margin-top:6px">백업 파일에는 글 내용이 그대로 들어 있습니다. 접근이 제한된 곳에만 보관하고, 공용 폴더·메신저에 올리지 마세요.</div>
+  <div id="eT" class="ok"></div>
   <div id="list"></div>
 </section>
 
@@ -61,9 +64,11 @@ const API = "https://vxbzkintrrfncntpvufh.supabase.co/functions/v1/api";
 // ▲▲▲
 const $ = s => document.querySelector(s);
 const CAT = {work:"🕘 근무·휴가",pay:"💰 급여·보상",growth:"🌱 복지·성장지원",grievance:"🤝 직장 내 고충·갈등",suggestion:"💡 제안·의견",etc:"💬 기타"};
+const CAT_TXT = {work:"근무·휴가",pay:"급여·보상",growth:"복지·성장지원",grievance:"직장 내 고충·갈등",suggestion:"제안·의견",etc:"기타"};
 const ST = {received:"접수됨",reviewing:"확인 중",answered:"답변 완료",closed:"종결"};
 let jwt = null, cur = null;
 const fmt = c => (c||"").replace(/(.{4})(?=.)/g,"$1-");
+const today = () => new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Seoul"});
 function show(id){ for(const v of ["vLogin","vList","vCase"]) $("#"+v).classList.toggle("hide", v!==id); }
 async function call(b){
   const r = await fetch(API,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+jwt},body:JSON.stringify(b)});
@@ -133,20 +138,123 @@ $("#delb").onclick = async () => {
   if(!confirm("이 글과 첨부파일을 완전히 삭제합니다. 되돌릴 수 없습니다. 계속할까요?")) return;
   try{ await call({action:"admin_delete", id:cur}); await load(); }catch(e){ $("#eC").textContent = e.message; }
 };
-$("#bkp").onclick = async () => {
-  $("#eT").textContent = "백업을 만드는 중...";
+
+// ───────── 백업 ─────────
+function save(blob, name){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+const kst = iso => iso ? new Date(iso).toLocaleDateString("sv-SE",{timeZone:"Asia/Seoul"}) : "";
+// 엑셀 칸 하나: 따옴표로 감싸고, = + - @ 로 시작하면 수식으로 실행되지 않게 앞에 ' 를 붙임
+function cell(v){
+  let s = String(v ?? "");
+  if(/^[=+\-@\t\r]/.test(s)) s = "'"+s;
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+function makeCsv(d){
+  const msgs = {}, atts = {};
+  for(const m of d.messages||[]) (msgs[m.case_id] ??= []).push(m);
+  for(const a of d.attachments||[]) (atts[a.case_id] ??= []).push(a.original_name);
+  const rows = [["글번호","분류","상태","접수일","구분","작성일","내용","첨부파일"]];
+  const cases = [...(d.cases||[])].sort((a,b) => String(b.created_date).localeCompare(String(a.created_date)));
+  for(const c of cases){
+    const st = (ST[c.status]||c.status)+(c.delete_requested_at ? " · 삭제 요청" : "");
+    const base = [fmt(c.receipt_code), CAT_TXT[c.category]||c.category, st, c.created_date];
+    const list = msgs[c.id] || [];
+    const files = (atts[c.id]||[]).join(" / ");
+    if(!list.length) rows.push([...base,"","","",files]);
+    list.forEach((m,i) => rows.push([...base, m.sender==="staff"?"인사팀":"작성자", kst(m.created_at), m.body, i===0 ? files : ""]));
+  }
+  return "\uFEFF"+rows.map(r => r.map(cell).join(",")).join("\r\n");
+}
+// 외부 프로그램 없이 zip 파일을 직접 만듦 (압축 없이 묶기만 함, 한글 파일명 지원)
+const CRC = (() => { const t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c = 0xFFFFFFFF; for(let i=0;i<u.length;i++) c = CRC[(c^u[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function makeZip(entries){
+  const d = new Date(), T = (d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1), D = ((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  const parts = [], central = []; let off = 0;
+  for(const e of entries){
+    const nm = new TextEncoder().encode(e.name), crc = crc32(e.data), sz = e.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,T,true); h.setUint16(12,D,true); h.setUint32(14,crc,true); h.setUint32(18,sz,true); h.setUint32(22,sz,true);
+    h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(h, nm, e.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true);
+    c.setUint16(12,T,true); c.setUint16(14,D,true); c.setUint32(16,crc,true); c.setUint32(20,sz,true); c.setUint32(24,sz,true);
+    c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    central.push(c, nm);
+    off += 30 + nm.length + sz;
+  }
+  const cdSize = central.reduce((s,x) => s + x.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,entries.length,true); end.setUint16(10,entries.length,true);
+  end.setUint32(12,cdSize,true); end.setUint32(16,off,true);
+  return new Blob([...parts, ...central, end], {type:"application/zip"});
+}
+const safeName = s => String(s||"파일").replace(/[\\/:*?"<>|\x00-\x1f]/g,"_").slice(0,150);
+async function zipAttachments(d){
+  const code = {}; for(const c of d.cases||[]) code[c.id] = fmt(c.receipt_code);
+  const entries = [], used = new Set(), bad = [];
+  let i = 0;
+  for(const f of d.attachments){
+    $("#eT").textContent = "첨부파일 모으는 중... ("+(++i)+"/"+d.attachments.length+") ⏳";
+    try{
+      const { url } = await call({action:"admin_download", id:f.id});
+      const r = await fetch(url); if(!r.ok) throw new Error();
+      const data = new Uint8Array(await r.arrayBuffer());
+      const base = (code[f.case_id]||"글번호없음")+"/"+safeName(f.original_name);
+      let name = base, n = 2;
+      while(used.has(name)) name = base.replace(/(\.[^./]*)?$/, m => " ("+(n++)+")"+m); // 같은 이름이면 (2), (3)...
+      used.add(name); entries.push({name, data});
+    }catch{ bad.push(f.original_name); }
+  }
+  if(!entries.length) throw new Error("zip");
+  save(makeZip(entries), "소통창구-첨부파일-"+today()+".zip");
+  return bad;
+}
+async function oneByOne(d){
+  let i = 0;
+  for(const f of d.attachments){
+    $("#eT").textContent = "첨부파일 내려받는 중... ("+(++i)+"/"+d.attachments.length+") ⏳";
+    const { url } = await call({action:"admin_download", id:f.id});
+    const a = document.createElement("a"); a.href = url; document.body.append(a); a.click(); a.remove();
+    await new Promise(r => setTimeout(r, 1500));
+  }
+}
+async function busyBtn(b, fn){ for(const x of ["#bkx","#bkj","#pg"]) $(x).disabled = true; try{ await fn(); } finally{ for(const x of ["#bkx","#bkj","#pg"]) $(x).disabled = false; } }
+
+$("#bkx").onclick = () => busyBtn($("#bkx"), async () => {
+  $("#eT").textContent = "백업을 만드는 중... ⏳";
   try{
     const d = await call({action:"admin_backup"});
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:"application/json"}));
-    a.download = "소통창구-백업-"+new Date().toISOString().slice(0,10)+".json"; a.click();
-    $("#eT").textContent = "✅ 글 백업 파일을 내려받았습니다. 안전한 곳에 보관해 주세요.";
-    if(d.attachments.length && confirm("첨부파일 "+d.attachments.length+"개도 내려받을까요? (브라우저가 여러 파일 다운로드 허용을 물으면 '허용'을 눌러 주세요)")){
-      for(const f of d.attachments){ const u = await call({action:"admin_download", id:f.id}); location.href = u.url; await new Promise(r => setTimeout(r,1200)); }
-      $("#eT").textContent = "✅ 글과 첨부파일 백업을 마쳤습니다.";
+    save(new Blob([makeCsv(d)],{type:"text/csv;charset=utf-8"}), "소통창구-백업-"+today()+".csv");
+    let msg = "✅ 엑셀용 백업 파일을 내려받았습니다. (글 "+(d.cases||[]).length+"건)";
+    $("#eT").textContent = msg;
+    const n = (d.attachments||[]).length;
+    if(!n || !confirm("첨부파일 "+n+"개를 글번호별 폴더로 묶은 zip 파일로 내려받을까요?")) return;
+    try{
+      const bad = await zipAttachments(d);
+      msg += "\n✅ 첨부파일 zip을 내려받았습니다."+(bad.length ? "\n⚠️ 받지 못한 파일: "+bad.join(", ") : "");
+      $("#eT").textContent = msg;
+    }catch{
+      if(!confirm("zip 파일을 만들지 못했습니다. 첨부파일을 하나씩 내려받을까요? (브라우저가 여러 파일 다운로드 허용을 물으면 '허용'을 눌러 주세요)")){ $("#eT").textContent = msg; return; }
+      await oneByOne(d);
+      $("#eT").textContent = msg+"\n✅ 첨부파일을 하나씩 내려받았습니다.";
     }
-  }catch(e){ $("#eT").textContent = e.message; }
-};
-$("#pg").onclick = async () => {
+  }catch(e){ $("#eT").textContent = "⚠️ "+e.message; }
+});
+$("#bkj").onclick = () => busyBtn($("#bkj"), async () => {
+  if(!confirm("원본 데이터에는 글 비밀번호 확인 정보와 내부 작성자 구분값이 들어 있습니다.\n복원용으로만 쓰고, 접근이 제한된 곳에만 보관해 주세요. 내려받을까요?")) return;
+  $("#eT").textContent = "원본 데이터를 만드는 중... ⏳";
+  try{
+    const d = await call({action:"admin_backup"});
+    save(new Blob([JSON.stringify(d,null,1)],{type:"application/json"}), "소통창구-원본데이터-"+today()+".json");
+    $("#eT").textContent = "✅ 원본 데이터 파일을 내려받았습니다. (글 "+(d.cases||[]).length+"건)";
+  }catch(e){ $("#eT").textContent = "⚠️ "+e.message; }
+});
+$("#pg").onclick = () => busyBtn($("#pg"), async () => {
   const days = Number(prompt("접수 후 며칠이 지난 '종결' 건을 삭제할까요? (최소 30일)","180"));
   if(!days) return;
   try{
@@ -154,8 +262,8 @@ $("#pg").onclick = async () => {
     if(!p.count){ $("#eT").textContent = "삭제할 글이 없습니다."; return; }
     if(!confirm("접수 후 "+Math.max(30,days)+"일이 지난 종결 건 "+p.count+"건과 첨부파일을 완전히 삭제합니다. 백업은 하셨나요? 되돌릴 수 없습니다. 삭제할까요?")) return;
     await call({action:"admin_purge", days, confirm:true}); await load(); $("#eT").textContent = "✅ "+p.count+"건을 삭제했습니다.";
-  }catch(e){ $("#eT").textContent = e.message; }
-};
+  }catch(e){ $("#eT").textContent = "⚠️ "+e.message; }
+});
 $("#bk").onclick = () => load().catch(()=>{});
 $("#rf").onclick = () => load().catch(()=>{});
 $("#lo").onclick = () => { jwt = null; cur = null; show("vLogin"); };
